@@ -62,6 +62,24 @@ def test_time_slice_custom_wraps_midnight(nav_df: pd.DataFrame) -> None:
     assert all(timestamp.hour >= 22 or timestamp.hour < 5 for timestamp in timestamps)
 
 
+def test_time_slice_returns_points_sorted_by_time(nav_df: pd.DataFrame) -> None:
+    shuffled = nav_df.sample(frac=1, random_state=7).reset_index(drop=True)
+
+    result = time_slice.handle(shuffled, {"period": "all_day", "start_hour": 0, "end_hour": 24})
+
+    timestamps = pd.to_datetime([point["timestamp"] for point in result["points"]])
+    assert timestamps.is_monotonic_increasing
+
+
+def test_time_slice_empty_result_explains_loaded_data_range(nav_df: pd.DataFrame) -> None:
+    result = time_slice.handle(nav_df, {"period": "twilight", "start_hour": 20, "end_hour": 21})
+
+    assert result["total_points"] == 0
+    assert result["points"] == []
+    assert result["data_time_range"]
+    assert "No points found in requested time range 20:00-21:00" in result["message"]
+
+
 def test_braking_groups_consecutive_rows_as_one_event(nav_df: pd.DataFrame) -> None:
     result = braking.handle(nav_df, {"threshold": -0.04})
     assert result["total_braking_events"] == 2

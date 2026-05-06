@@ -28,7 +28,7 @@ INTENT_RULES = {
     ),
     "time_slice": (
         "вопросы про время суток или конкретный интервал часов: сумерки, рассвет, ночь, день, "
-        "twilight, dawn, night, daytime, с 10 до 11, с 13:30 до 14, from 10 to 11."
+        "twilight, dawn, night, daytime, с 10 до 11, с 13:30 до 14, в 14, from 10 to 11."
     ),
     "braking": "вопросы про резкое торможение, замедление, brake, braking, deceleration.",
     "geo_filter": "вопросы про М11/m11, Москву/Moscow или точки внутри региона.",
@@ -59,6 +59,7 @@ EXAMPLES = (
         "что происходило с 13:30 до 14?",
         '{"intent":"time_slice","params":{"period":"custom","start_hour":13,"start_minute":30,"end_hour":14,"end_minute":0}}',
     ),
+    ("что было в 14?", '{"intent":"time_slice","params":{"period":"custom","start_hour":14,"end_hour":15}}'),
     ("from 22 to 5", '{"intent":"time_slice","params":{"period":"custom","start_hour":22,"end_hour":5}}'),
     ("резко тормозил", '{"intent":"braking","params":{"threshold":-2.0}}'),
     ("hard braking below minus three", '{"intent":"braking","params":{"threshold":-3.0}}'),

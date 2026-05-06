@@ -79,3 +79,15 @@ def test_query_endpoint_prefers_explicit_time_range_over_llm_period(client: Test
     assert payload["intent"] == "time_slice"
     assert payload["result"]["period"] == "custom"
     assert payload["result"]["time_range"] == "08:00-09:00"
+
+
+def test_query_endpoint_treats_single_hour_as_one_hour_range(client: TestClient) -> None:
+    FakeLLMClient.response = '{"intent":"time_slice","params":{"period":"daytime"}}'
+
+    response = client.post("/query", json={"query": "что было в 14?"})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["intent"] == "time_slice"
+    assert payload["result"]["period"] == "custom"
+    assert payload["result"]["time_range"] == "14:00-15:00"

@@ -102,3 +102,23 @@ def test_extract_hour_range_keeps_minutes() -> None:
         "start_minute": 30,
         "end_minute": 0,
     }
+
+
+def test_extract_single_hour_as_one_hour_range() -> None:
+    assert query_parser.extract_time_range("что было в 14?") == {
+        "period": "custom",
+        "start_hour": 14,
+        "end_hour": 15,
+        "start_minute": 0,
+        "end_minute": 0,
+    }
+
+
+def test_extract_single_evening_hour_as_one_hour_range() -> None:
+    assert query_parser.extract_time_range("что было в 8 вечера?") == {
+        "period": "custom",
+        "start_hour": 20,
+        "end_hour": 21,
+        "start_minute": 0,
+        "end_minute": 0,
+    }

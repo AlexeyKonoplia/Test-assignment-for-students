@@ -26,14 +26,14 @@ def handle(df: pd.DataFrame, params: dict) -> dict:
     else:
         mask = (row_total_minutes >= start_total_minutes) & (row_total_minutes < end_total_minutes)
 
-    filtered = df.loc[mask]
+    filtered = df.loc[mask].sort_values("datetime_moscow")
     total = int(len(filtered))
     page = limited(
         (_row_to_point(row) for _, row in filtered.head(MAX_POINTS).iterrows()),
         total,
         MAX_POINTS,
     )
-    return {
+    result = {
         "period": period,
         "time_range": f"{start_hour:02d}:{start_minute:02d}-{end_hour:02d}:{end_minute:02d}",
         "total_points": total,
@@ -42,6 +42,9 @@ def handle(df: pd.DataFrame, params: dict) -> dict:
         "truncated": page["truncated"],
         "points": page["items"],
     }
+    if total == 0:
+        result.update(_empty_result_metadata(df, result["time_range"]))
+    return result
 
 
 def _row_to_point(row: pd.Series) -> dict:
@@ -51,4 +54,23 @@ def _row_to_point(row: pd.Series) -> dict:
         "longitude": float(row["longitude"]),
         "horizontal_speed": round(float(row["horizontal_speed"] * KMH_FACTOR), 3),
         "azimuth": round(float(row["azimuth"]), 3),
+    }
+
+
+def _empty_result_metadata(df: pd.DataFrame, requested_time_range: str) -> dict:
+    if df.empty:
+        return {
+            "message": f"No points found in requested time range {requested_time_range}; loaded data is empty.",
+            "data_time_range": None,
+        }
+
+    min_time = pd.Timestamp(df["datetime_moscow"].min())
+    max_time = pd.Timestamp(df["datetime_moscow"].max())
+    data_time_range = f"{min_time.strftime('%Y-%m-%d %H:%M:%S')}-{max_time.strftime('%Y-%m-%d %H:%M:%S')}"
+    return {
+        "message": (
+            f"No points found in requested time range {requested_time_range}; "
+            f"loaded data covers {data_time_range}."
+        ),
+        "data_time_range": data_time_range,
     }

@@ -13,11 +13,15 @@ HOUR_RANGE_PATTERN = re.compile(
     r"\s*(утра|вечера|дня|ночи|am|pm)?",
     re.IGNORECASE,
 )
+SINGLE_HOUR_PATTERN = re.compile(
+    r"(?:\bв|\bat)\s+(\d{1,2})(?::(\d{2}))?\s*(утра|вечера|дня|ночи|am|pm)?\b",
+    re.IGNORECASE,
+)
 
 
 async def parse(query: str, client: LLMClient | None = None) -> ParsedQuery:
     """Parse a natural-language query into an intent and normalized parameters."""
-    explicit_time_range = extract_hour_range(query)
+    explicit_time_range = extract_time_range(query)
     llm = client or LLMClient()
     try:
         raw = await llm.complete(build_prompt(query))
@@ -60,6 +64,10 @@ def parse_llm_response(raw: str) -> dict[str, Any]:
     return _parse_error(raw)
 
 
+def extract_time_range(query: str) -> dict[str, Any] | None:
+    return extract_hour_range(query) or extract_single_hour_range(query)
+
+
 def extract_hour_range(query: str) -> dict[str, Any] | None:
     """Extract explicit hour ranges like 'с 8 до 9 утра' from the original query."""
     match = HOUR_RANGE_PATTERN.search(query)
@@ -81,6 +89,27 @@ def extract_hour_range(query: str) -> dict[str, Any] | None:
     if end_hour == 24 and end_minute != 0:
         return None
 
+    return {
+        "period": "custom",
+        "start_hour": start_hour,
+        "end_hour": end_hour,
+        "start_minute": start_minute,
+        "end_minute": end_minute,
+    }
+
+
+def extract_single_hour_range(query: str) -> dict[str, Any] | None:
+    """Extract single-hour requests like 'в 14' as '14:00-15:00'."""
+    match = SINGLE_HOUR_PATTERN.search(query)
+    if not match:
+        return None
+
+    start_hour = _normalize_hour(int(match.group(1)), match.group(3))
+    start_minute = _normalize_minute(match.group(2))
+    if not 0 <= start_hour <= 23 or not 0 <= start_minute <= 59:
+        return None
+
+    end_hour, end_minute = _add_one_hour(start_hour, start_minute)
     return {
         "period": "custom",
         "start_hour": start_hour,
@@ -118,6 +147,14 @@ def _normalize_minute(raw_minute: str | None) -> int:
         return 0
     minute = int(raw_minute)
     return minute if 0 <= minute <= 59 else -1
+
+
+def _add_one_hour(hour: int, minute: int) -> tuple[int, int]:
+    total_minutes = hour * 60 + minute + 60
+    if total_minutes == 24 * 60:
+        return 24, 0
+    total_minutes %= 24 * 60
+    return total_minutes // 60, total_minutes % 60
 
 
 def _json_candidates(raw: str) -> list[str]:
