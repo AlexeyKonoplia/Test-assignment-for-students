@@ -15,29 +15,18 @@
 
 ```bash
 cd semantic-nav-search
-cp .env.example .env
+cp .env.example .env # Добавьте OPENROUTER_API_KEY в .env
 docker compose up --build
 ```
 
-Без Docker (Linux):
+Без Docker:
 
 ```bash
 cd semantic-nav-search
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env
-uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
-
-Без Docker (Windows):
-
-```powershell
-cd semantic-nav-search
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-Copy-Item .env.example .env
+cp .env.example .env # Добавьте OPENROUTER_API_KEY в .env
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
@@ -61,21 +50,18 @@ curl -X POST http://localhost:8000/query -H "Content-Type: application/json" -d 
 
 ```bash
 curl -X POST http://localhost:8000/query -H "Content-Type: application/json" -d '{"query":"в сумерках"}'
-curl -X POST http://localhost:8000/query -H "Content-Type: application/json" -d '{"query":"show daytime points"}'
 ```
 
 Торможение:
 
 ```bash
 curl -X POST http://localhost:8000/query -H "Content-Type: application/json" -d '{"query":"резко тормозил"}'
-curl -X POST http://localhost:8000/query -H "Content-Type: application/json" -d '{"query":"hard braking below minus three"}'
 ```
 
 Геофильтр:
 
 ```bash
 curl -X POST http://localhost:8000/query -H "Content-Type: application/json" -d '{"query":"на м11"}'
-curl -X POST http://localhost:8000/query -H "Content-Type: application/json" -d '{"query":"points in Moscow"}'
 ```
 
 ## Примеры ответов

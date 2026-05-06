@@ -65,7 +65,8 @@ async def query_endpoint(body: QueryRequest, request: Request) -> dict:
         },
     )
 
-    response = {"status": status, "query": body.query, "intent": parsed.intent, "result": result}
+    response = {"status": status, "query": body.query,
+                "intent": parsed.intent, "result": result}
     if result.get("error") == "unknown_intent":
         raise HTTPException(status_code=422, detail=response)
     return response
