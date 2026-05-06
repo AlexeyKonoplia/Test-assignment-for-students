@@ -50,3 +50,55 @@ def test_normalize_m11_adds_route_corridor() -> None:
     assert normalized["params"]["region"] == "m11"
     assert normalized["params"]["route"]
     assert normalized["params"]["corridor_km"] > 0
+
+
+def test_normalize_time_slice_keeps_custom_hours() -> None:
+    normalized = query_parser.normalize_parsed_payload(
+        {"intent": "time_slice", "params": {"period": "custom", "start_hour": 10, "end_hour": 11}}
+    )
+
+    assert normalized == {
+        "intent": "time_slice",
+        "params": {"period": "custom", "start_hour": 10, "end_hour": 11},
+    }
+
+
+def test_normalize_time_slice_understands_russian_period_alias() -> None:
+    normalized = query_parser.normalize_parsed_payload(
+        {"intent": "time_slice", "params": {"period": "сумерки"}}
+    )
+
+    assert normalized == {
+        "intent": "time_slice",
+        "params": {"period": "twilight", "start_hour": 16, "end_hour": 19},
+    }
+
+
+def test_extract_hour_range_from_russian_morning_query() -> None:
+    assert query_parser.extract_hour_range("что происходило в с 8 до 9 утра?") == {
+        "period": "custom",
+        "start_hour": 8,
+        "end_hour": 9,
+        "start_minute": 0,
+        "end_minute": 0,
+    }
+
+
+def test_extract_hour_range_converts_evening_hours() -> None:
+    assert query_parser.extract_hour_range("с 8 до 9 вечера") == {
+        "period": "custom",
+        "start_hour": 20,
+        "end_hour": 21,
+        "start_minute": 0,
+        "end_minute": 0,
+    }
+
+
+def test_extract_hour_range_keeps_minutes() -> None:
+    assert query_parser.extract_hour_range("что происходило с 13:30 до 14?") == {
+        "period": "custom",
+        "start_hour": 13,
+        "end_hour": 14,
+        "start_minute": 30,
+        "end_minute": 0,
+    }

@@ -7,18 +7,24 @@ from app.handlers.pagination import limited
 MAX_POINTS = 1000
 DEFAULT_START_HOUR = 16
 DEFAULT_END_HOUR = 19
+DEFAULT_MINUTE = 0
 
 
 def handle(df: pd.DataFrame, params: dict) -> dict:
-    """Return points inside a Moscow-hour range."""
+    """Return points inside a Moscow time range."""
     start_hour = int(params.get("start_hour", DEFAULT_START_HOUR))
     end_hour = int(params.get("end_hour", DEFAULT_END_HOUR))
+    start_minute = int(params.get("start_minute", DEFAULT_MINUTE))
+    end_minute = int(params.get("end_minute", DEFAULT_MINUTE))
     period = params.get("period", "custom")
+    start_total_minutes = start_hour * 60 + start_minute
+    end_total_minutes = end_hour * 60 + end_minute
+    row_total_minutes = df["datetime_moscow"].dt.hour * 60 + df["datetime_moscow"].dt.minute
 
-    if start_hour > end_hour:
-        mask = (df["hour_moscow"] >= start_hour) | (df["hour_moscow"] < end_hour)
+    if start_total_minutes > end_total_minutes:
+        mask = (row_total_minutes >= start_total_minutes) | (row_total_minutes < end_total_minutes)
     else:
-        mask = (df["hour_moscow"] >= start_hour) & (df["hour_moscow"] < end_hour)
+        mask = (row_total_minutes >= start_total_minutes) & (row_total_minutes < end_total_minutes)
 
     filtered = df.loc[mask]
     total = int(len(filtered))
@@ -29,7 +35,7 @@ def handle(df: pd.DataFrame, params: dict) -> dict:
     )
     return {
         "period": period,
-        "time_range": f"{start_hour:02d}:00-{end_hour:02d}:00",
+        "time_range": f"{start_hour:02d}:{start_minute:02d}-{end_hour:02d}:{end_minute:02d}",
         "total_points": total,
         "total_available": page["total_available"],
         "limit": page["limit"],

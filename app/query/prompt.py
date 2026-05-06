@@ -15,6 +15,7 @@ RESPONSE_SCHEMAS = (
     '{"intent":"aggregation","params":{"metric":"max_speed|min_speed|avg_speed|max_acceleration|total_distance"}}',
     '{"intent":"filter_quality","params":{"quality":"poor|good"}}',
     '{"intent":"time_slice","params":{"period":"twilight|dawn|night|daytime"}}',
+    '{"intent":"time_slice","params":{"period":"custom","start_hour":13,"start_minute":30,"end_hour":14,"end_minute":0}}',
     '{"intent":"braking","params":{"threshold":-2.0}}',
     '{"intent":"geo_filter","params":{"region":"м11|m11|moscow|москва"}}',
     '{"intent":"unknown","params":{"reason":"short reason"}}',
@@ -26,7 +27,8 @@ INTENT_RULES = {
         "вопросы про плохой/хороший GPS, GNSS, качество позиционирования, сбои, ошибки или fix."
     ),
     "time_slice": (
-        "вопросы про время суток: сумерки, рассвет, ночь, день, twilight, dawn, night, daytime."
+        "вопросы про время суток или конкретный интервал часов: сумерки, рассвет, ночь, день, "
+        "twilight, dawn, night, daytime, с 10 до 11, с 13:30 до 14, from 10 to 11."
     ),
     "braking": "вопросы про резкое торможение, замедление, brake, braking, deceleration.",
     "geo_filter": "вопросы про М11/m11, Москву/Moscow или точки внутри региона.",
@@ -51,6 +53,13 @@ EXAMPLES = (
     ("в сумерках", '{"intent":"time_slice","params":{"period":"twilight"}}'),
     ("на рассвете", '{"intent":"time_slice","params":{"period":"dawn"}}'),
     ("at dawn", '{"intent":"time_slice","params":{"period":"dawn"}}'),
+    ("с 10 до 11", '{"intent":"time_slice","params":{"period":"custom","start_hour":10,"end_hour":11}}'),
+    ("что происходило с 8 до 9 утра?", '{"intent":"time_slice","params":{"period":"custom","start_hour":8,"end_hour":9}}'),
+    (
+        "что происходило с 13:30 до 14?",
+        '{"intent":"time_slice","params":{"period":"custom","start_hour":13,"start_minute":30,"end_hour":14,"end_minute":0}}',
+    ),
+    ("from 22 to 5", '{"intent":"time_slice","params":{"period":"custom","start_hour":22,"end_hour":5}}'),
     ("резко тормозил", '{"intent":"braking","params":{"threshold":-2.0}}'),
     ("hard braking below minus three", '{"intent":"braking","params":{"threshold":-3.0}}'),
     ("когда тягач находился в пределах трассы М11?", '{"intent":"geo_filter","params":{"region":"м11"}}'),
@@ -59,8 +68,10 @@ EXAMPLES = (
 )
 
 PYTHON_OWNED_PARAMS_NOTE = """
-Часы периодов и координатные границы регионов выставляет Python после классификации.
-Не добавляй lat/lon, start_hour/end_hour или вычисленные значения самостоятельно.
+Часы известных периодов и координатные границы регионов выставляет Python после классификации.
+Для конкретного пользовательского интервала верни start_hour/end_hour как целые часы 0-24.
+Если пользователь указал минуты, верни start_minute/end_minute как целые минуты 0-59.
+Не добавляй lat/lon или вычисленные значения известных периодов самостоятельно.
 """.strip()
 
 

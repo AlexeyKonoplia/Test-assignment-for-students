@@ -71,7 +71,7 @@ curl -X POST http://localhost:8000/query -H "Content-Type: application/json" -d 
 ```json
 {
   "status": "success",
-  "query": "top speed",
+  "query": "покажи максималку",
   "intent": "aggregation",
   "result": {
     "metric": "max_speed",

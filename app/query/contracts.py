@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
 from app.domain import (
     DEFAULT_BRAKING_THRESHOLD,
@@ -13,6 +13,7 @@ from app.domain import (
     GEO_REGIONS,
     M11_CORRIDOR_KM,
     M11_ROUTE,
+    TIME_PERIOD_ALIASES,
     TIME_PERIODS,
 )
 
@@ -47,15 +48,45 @@ class FilterQualityParams(StrictParams):
 
 
 class TimeSliceParams(StrictParams):
-    period: str = "twilight"
+    period: str = "custom"
     start_hour: int = Field(default=16, ge=0, le=24)
     end_hour: int = Field(default=19, ge=0, le=24)
+    start_minute: int | None = Field(default=None, ge=0, le=59)
+    end_minute: int | None = Field(default=None, ge=0, le=59)
+
+    @model_validator(mode="after")
+    def whole_hour_for_24(self) -> "TimeSliceParams":
+        if self.start_hour == 24 and (self.start_minute or 0) != 0:
+            raise ValueError("start_minute must be 0 when start_hour is 24")
+        if self.end_hour == 24 and (self.end_minute or 0) != 0:
+            raise ValueError("end_minute must be 0 when end_hour is 24")
+        return self
 
     @classmethod
     def from_period(cls, period: str) -> "TimeSliceParams":
-        normalized_period = period if period in TIME_PERIODS else "twilight"
+        normalized_period = normalize_time_period(period) or "twilight"
         start_hour, end_hour = TIME_PERIODS[normalized_period]
         return cls(period=normalized_period, start_hour=start_hour, end_hour=end_hour)
+
+    @classmethod
+    def from_payload(cls, params: dict[str, Any]) -> "TimeSliceParams":
+        period = normalize_time_period(params.get("period"))
+        has_start = "start_hour" in params
+        has_end = "end_hour" in params
+
+        if has_start and has_end:
+            return cls(
+                period=period or "custom",
+                start_hour=params["start_hour"],
+                end_hour=params["end_hour"],
+                start_minute=params.get("start_minute"),
+                end_minute=params.get("end_minute"),
+            )
+
+        if period:
+            return cls.from_period(period)
+
+        return cls.from_period("twilight")
 
 
 class BrakingParams(StrictParams):
@@ -109,6 +140,14 @@ def normalize_region(raw_region: Any) -> str:
     return GEO_REGION_ALIASES.get(region, GEO_REGION_ALIASES.get(region.lower(), region.lower()))
 
 
+def normalize_time_period(raw_period: Any) -> str | None:
+    period = str(raw_period or "").strip()
+    if not period:
+        return None
+    normalized = TIME_PERIOD_ALIASES.get(period, TIME_PERIOD_ALIASES.get(period.lower()))
+    return normalized if normalized in TIME_PERIODS else None
+
+
 def normalize_payload(payload: dict[str, Any]) -> dict[str, Any]:
     """Validate and normalize an LLM payload into handler-ready params."""
     intent = str(payload.get("intent", "unknown"))
@@ -122,9 +161,10 @@ def normalize_payload(payload: dict[str, Any]) -> dict[str, Any]:
         if intent == "filter_quality":
             return {"intent": intent, "params": FilterQualityParams(**params).model_dump()}
         if intent == "time_slice":
+            time_params = TimeSliceParams.from_payload(params)
             return {
                 "intent": intent,
-                "params": TimeSliceParams.from_period(str(params.get("period", "twilight"))).model_dump(),
+                "params": time_params.model_dump(exclude_none=True),
             }
         if intent == "braking":
             return {"intent": intent, "params": BrakingParams(**params).model_dump()}

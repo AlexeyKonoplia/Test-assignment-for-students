@@ -19,6 +19,24 @@ TIME_PERIODS = {
     "daytime": (8, 18),
 }
 
+TIME_PERIOD_ALIASES = {
+    "twilight": "twilight",
+    "twighlight": "twilight",
+    "сумерки": "twilight",
+    "сумерках": "twilight",
+    "dawn": "dawn",
+    "рассвет": "dawn",
+    "рассвете": "dawn",
+    "night": "night",
+    "ночь": "night",
+    "ночью": "night",
+    "daytime": "daytime",
+    "day": "daytime",
+    "день": "daytime",
+    "днем": "daytime",
+    "днём": "daytime",
+}
+
 DEFAULT_BRAKING_THRESHOLD = -2.0
 
 GEO_REGIONS = {

@@ -67,3 +67,15 @@ def test_query_endpoint_handles_malformed_llm_json(client: TestClient) -> None:
 
     assert response.status_code == 422
     assert response.json()["detail"]["result"]["error"] == "unknown_intent"
+
+
+def test_query_endpoint_prefers_explicit_time_range_over_llm_period(client: TestClient) -> None:
+    FakeLLMClient.response = '{"intent":"time_slice","params":{"period":"daytime"}}'
+
+    response = client.post("/query", json={"query": "что происходило в с 8 до 9 утра?"})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["intent"] == "time_slice"
+    assert payload["result"]["period"] == "custom"
+    assert payload["result"]["time_range"] == "08:00-09:00"

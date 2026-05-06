@@ -29,6 +29,39 @@ def test_time_slice_twilight_returns_hours_16_to_19(nav_df: pd.DataFrame) -> Non
     assert all(16 <= timestamp.hour < 19 for timestamp in timestamps)
 
 
+def test_time_slice_custom_returns_requested_hour_range(nav_df: pd.DataFrame) -> None:
+    result = time_slice.handle(nav_df, {"period": "custom", "start_hour": 16, "end_hour": 17})
+    assert result["total_points"] > 0
+    timestamps = pd.to_datetime([point["timestamp"] for point in result["points"]])
+    assert all(16 <= timestamp.hour < 17 for timestamp in timestamps)
+
+
+def test_time_slice_custom_returns_requested_minute_range(nav_df: pd.DataFrame) -> None:
+    result = time_slice.handle(
+        nav_df,
+        {
+            "period": "custom",
+            "start_hour": 16,
+            "start_minute": 30,
+            "end_hour": 17,
+            "end_minute": 0,
+        },
+    )
+    assert result["total_points"] > 0
+    assert result["time_range"] == "16:30-17:00"
+    timestamps = pd.to_datetime([point["timestamp"] for point in result["points"]])
+    assert all(
+        (timestamp.hour * 60 + timestamp.minute) in range(16 * 60 + 30, 17 * 60)
+        for timestamp in timestamps
+    )
+
+
+def test_time_slice_custom_wraps_midnight(nav_df: pd.DataFrame) -> None:
+    result = time_slice.handle(nav_df, {"period": "custom", "start_hour": 22, "end_hour": 5})
+    timestamps = pd.to_datetime([point["timestamp"] for point in result["points"]])
+    assert all(timestamp.hour >= 22 or timestamp.hour < 5 for timestamp in timestamps)
+
+
 def test_braking_groups_consecutive_rows_as_one_event(nav_df: pd.DataFrame) -> None:
     result = braking.handle(nav_df, {"threshold": -0.04})
     assert result["total_braking_events"] == 2
